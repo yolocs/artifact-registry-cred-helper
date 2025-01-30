@@ -28,8 +28,19 @@ func (c *SetMavenSettings) Help() string {
 Usage: {{ COMMAND }} [options]
 
 Set the credential in the Maven settings.xml file for the given repos.
+By default, we use repository ID in format: artifactregistry-[project_id]-[repo_name] to be used in pom.xml.
 
-TODO: better docs
+  # Example: Set the credential in the default path ~/.m2/settings.xml
+  # The repo ID will be artifactregistry-my-project-my-repo
+  artifact-registry-cred-helper set-maven --repo-urls us-maven.pkg.dev/my-project/repo1
+
+  # Example: Override the default settings path.
+  # The repo ID will be artifactregistry-my-repo
+  artifact-registry-cred-helper set-maven --repo-urls us-maven.pkg.dev/my-project/repo1 --maven-settings /home/user/.m2/settings.xml
+
+  # Example: Override the repo IDs.
+  # The repo ID will be my-artifact-registry
+  artifact-registry-cred-helper set-maven --repo-ids-override my-artifact-registry
 `
 }
 

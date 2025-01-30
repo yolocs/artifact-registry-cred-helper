@@ -26,10 +26,16 @@ func (c *SetAptCommand) Help() string {
 	return `
 Usage: {{ COMMAND }} [options]
 
-Set the credential in /etc/apt/apt.conf.d for the given repos.
-This command must be run in 'sudo -E' mode.
+This command MUST be run in 'sudo -E' mode.
 
-TODO: better docs
+Set the credential in /etc/apt/apt.conf.d for the given repos.
+All Artifact Registry credentials will be removed from the auth config before setting the new hosts.
+
+  # Example: Set the credential in the default path /etc/apt/apt.conf.d/artifact-registry.conf
+  artifact-registry-cred-helper set-apt --repo-urls us-apt.pkg.dev/my-project/repo1
+
+  # Example: Override the default auth config path.
+  artifact-registry-cred-helper set-apt --repo-urls us-apt.pkg.dev/my-project/repo1 --config-name my-repo.conf
 `
 }
 

@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	// "github.com/GoogleCloudPlatform/artifact-registry-go-tools/pkg/auth"
 )
 
 var (
@@ -54,12 +53,12 @@ func Open(netrcPath string) (*NetRC, error) {
 	return &NetRC{path: netrcPath, content: string(data)}, nil
 }
 
-func (n *NetRC) SetToken(hosts []string, token string, append bool) {
-	n.update(hosts, tokenFormat, token, append)
+func (n *NetRC) SetToken(hosts []string, token string) {
+	n.update(hosts, tokenFormat, token, false)
 }
 
-func (n *NetRC) SetJSONKey(hosts []string, base64Key string, append bool) {
-	n.update(hosts, jsonKeyFormat, base64Key, append)
+func (n *NetRC) SetJSONKey(hosts []string, base64Key string) {
+	n.update(hosts, jsonKeyFormat, base64Key, false)
 }
 
 func (n *NetRC) Refresh(token string) {

@@ -4,12 +4,12 @@ go 1.23.3
 
 require (
 	github.com/abcxyz/pkg v1.3.1
+	github.com/beevik/etree v1.4.1
 	golang.org/x/oauth2 v0.25.0
 )
 
 require (
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
-	github.com/beevik/etree v1.4.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/posener/complete/v2 v2.1.0 // indirect
