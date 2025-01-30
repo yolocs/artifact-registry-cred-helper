@@ -16,6 +16,7 @@ var rootCmd = func() cli.Command {
 		Commands: map[string]cli.CommandFactory{
 			"get":       func() cli.Command { return &GetCommand{} },
 			"set-netrc": func() cli.Command { return &SetNetRCCommand{} },
+			"set-maven": func() cli.Command { return &SetMavenSettings{} },
 		},
 	}
 }

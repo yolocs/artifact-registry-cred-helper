@@ -3,32 +3,45 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/abcxyz/pkg/cli"
 )
 
 type CommonFlags struct {
-	hosts                     []string
+	repoURLs                  []string
 	accessTokenFromEnv        string
 	jsonKeyPath               string
 	backgroundRefreshInterval time.Duration
 	backgroundRefreshDuration time.Duration
+
+	parsedURLs []*url.URL
+	once       sync.Once
 }
 
 func (f *CommonFlags) validate() error {
 	var merr error
 
-	if len(f.hosts) <= 0 {
+	if err := f.validateWithoutURLs(); err != nil {
+		merr = errors.Join(merr, err)
+	}
+
+	if len(f.repoURLs) <= 0 {
 		merr = errors.Join(merr, fmt.Errorf("no host specified"))
 	}
 
-	for _, h := range f.hosts {
-		if !strings.HasSuffix(h, ".pkg.dev") {
-			merr = errors.Join(merr, fmt.Errorf("host %q doesn't have domain '.pkg.dev'", h))
-		}
+	if err := f.parseURLs(); err != nil {
+		merr = errors.Join(merr, err)
 	}
+
+	return merr
+}
+
+func (f *CommonFlags) validateWithoutURLs() error {
+	var merr error
 
 	if f.backgroundRefreshInterval < 2*time.Minute && f.backgroundRefreshInterval > 0 {
 		merr = errors.Join(merr, fmt.Errorf("background refresh interval must be at least 2 minutes"))
@@ -41,15 +54,51 @@ func (f *CommonFlags) validate() error {
 	return merr
 }
 
+// If validate was called, then should return no error.
+func (f *CommonFlags) repoHosts() ([]string, error) {
+	if err := f.parseURLs(); err != nil {
+		return nil, err
+	}
+
+	set := map[string]struct{}{}
+	hosts := make([]string, 0, len(f.parsedURLs))
+	for _, u := range f.parsedURLs {
+		if _, ok := set[u.Host]; ok {
+			continue
+		}
+		set[u.Host] = struct{}{}
+		hosts = append(hosts, u.Host)
+	}
+
+	return hosts, nil
+}
+
+func (f *CommonFlags) parseURLs() (merr error) {
+	f.once.Do(func() {
+		for _, h := range f.repoURLs {
+			if !strings.HasPrefix(h, "https://") {
+				h = "https://" + h
+			}
+			u, err := url.Parse(h)
+			if err != nil {
+				merr = errors.Join(merr, fmt.Errorf("failed to parse host %q: %w", h, err))
+			}
+			f.parsedURLs = append(f.parsedURLs, u)
+		}
+	})
+
+	return
+}
+
 func (f *CommonFlags) setSection(set *cli.FlagSet) *cli.FlagSet {
 	sec := set.NewSection("COMMON OPTIONS")
 
 	sec.StringSliceVar(&cli.StringSliceVar{
-		Name:    "hosts",
+		Name:    "repo-urls",
 		Usage:   "REQUIRED. The hosts to set the credential for. Must have domain '*.pkg.dev'.",
-		Target:  &f.hosts,
+		Target:  &f.repoURLs,
 		EnvVar:  "AR_CRED_HELPER_HOSTS",
-		Example: "us-go.pkg.dev,eu-python.pkg.dev,asia-maven.pkg.dev",
+		Example: "us-go.pkg.dev/my-project/repo1,asia-maven.pkg.dev/my-project/repo2",
 	})
 
 	sec.StringVar(&cli.StringVar{
