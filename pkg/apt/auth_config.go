@@ -37,9 +37,9 @@ func (c *AuthConfig) Close() error {
 }
 
 func (c *AuthConfig) SetToken(hosts []string, token string) {
-	c.config.SetToken(hosts, token, false)
+	c.config.SetToken(hosts, token)
 }
 
 func (c *AuthConfig) SetJSONKey(hosts []string, base64Key string) {
-	c.config.SetJSONKey(hosts, base64Key, false)
+	c.config.SetJSONKey(hosts, base64Key)
 }

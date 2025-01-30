@@ -1,0 +1,52 @@
+version: 2
+
+before:
+  hooks:
+    - 'go mod tidy'
+
+builds:
+  -
+    env:
+      - 'CGO_ENABLED=0'
+      - 'GO111MODULE=on'
+      - 'GOPROXY=https://proxy.golang.org,direct'
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - '-a'
+      - '-trimpath'
+    ldflags:
+      - '-s'
+      - '-w'
+      - '-X={{ .ModulePath }}/internal/version.name=artifact-registry-cred-helper'
+      - '-X={{ .ModulePath }}/internal/version.version={{ .Version }}'
+      - '-X={{ .ModulePath }}/internal/version.commit={{ .Commit }}'
+      - '-extldflags=-static'
+    goos:
+      - 'darwin'
+      - 'linux'
+      - 'windows'
+    goarch:
+      - 'amd64'
+      - 'arm64'
+    binary: 'artifact-registry-cred-helper'
+    main: './cmd/artifact-registry-cred-helper'
+
+archives:
+  - formats:
+      - 'tar.gz'
+    name_template: 'artifact-registry-cred-helper_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    format_overrides:
+      - goos: 'windows'
+        formats:
+          - 'zip'
+
+checksum:
+  name_template: 'artifact-registry-cred-helper_{{ .Version }}_SHA512SUMS'
+  algorithm: 'sha512'
+
+changelog:
+  use: 'github'
+
+release:
+  draft: false
+  mode: 'replace'

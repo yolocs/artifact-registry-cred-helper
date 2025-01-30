@@ -27,13 +27,13 @@ func (c *SetNetRCCommand) Help() string {
 Usage: {{ COMMAND }} [options]
 
 Set the credential in the .netrc file for the given host(s).
+All Artifact Registry credentials will be removed from the .netrc file before setting the new hosts.
 
-All Artifact Registry credentials will be removed from the .netrc file before adding the new hosts.
+  # Example: Set the credential in the default path ~/.netrc
+  artifact-registry-cred-helper set-netrc --repo-urls us-go.pkg.dev/my-project/repo1
 
-  # Existing Artifact Registry hosts will be removed.
-  # The only one remaining will be us-go.pkg.dev.
-  # If us-go.pkg.dev already exists, its credential will be refreshed.
-  artifact-registry-cred-helper set-netrc --repo-urls=us-go.pkg.dev/my-project/repo
+  # Example: Override the default .netrc path
+  artifact-registry-cred-helper set-netrc --repo-urls us-go.pkg.dev/my-project/repo1 --netrc /home/user/.netrc
 `
 }
 
@@ -109,7 +109,7 @@ func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
 		if err != nil {
 			return fmt.Errorf("failed to encode JSON key: %w", err)
 		}
-		nrc.SetJSONKey(hosts, k, false)
+		nrc.SetJSONKey(hosts, k)
 		return nil
 	}
 
@@ -118,7 +118,7 @@ func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
 		if token == "" {
 			return fmt.Errorf("failed to get access token from env var %q", c.commonFlags.accessTokenFromEnv)
 		}
-		nrc.SetToken(hosts, token, false)
+		nrc.SetToken(hosts, token)
 		return nil
 	}
 
@@ -126,7 +126,7 @@ func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}
-	nrc.SetToken(hosts, token, false)
+	nrc.SetToken(hosts, token)
 
 	return nil
 }
