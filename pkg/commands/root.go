@@ -17,6 +17,7 @@ var rootCmd = func() cli.Command {
 			"get":       func() cli.Command { return &GetCommand{} },
 			"set-netrc": func() cli.Command { return &SetNetRCCommand{} },
 			"set-maven": func() cli.Command { return &SetMavenSettings{} },
+			"set-apt":   func() cli.Command { return &SetAptCommand{} },
 		},
 	}
 }

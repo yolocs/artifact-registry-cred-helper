@@ -7,52 +7,49 @@ import (
 	"time"
 
 	"github.com/abcxyz/pkg/cli"
+	"github.com/yolocs/artifact-registry-cred-helper/pkg/apt"
 	"github.com/yolocs/artifact-registry-cred-helper/pkg/auth"
-	"github.com/yolocs/artifact-registry-cred-helper/pkg/netrc"
 )
 
-type SetNetRCCommand struct {
+type SetAptCommand struct {
 	cli.BaseCommand
 
 	commonFlags *CommonFlags
-	netrcPath   string
+	configName  string
 }
 
-func (c *SetNetRCCommand) Desc() string {
-	return "Set the credential in the .netrc file for the given repos."
+func (c *SetAptCommand) Desc() string {
+	return "Set the credential in /etc/apt/apt.conf.d for the given repos."
 }
 
-func (c *SetNetRCCommand) Help() string {
+func (c *SetAptCommand) Help() string {
 	return `
 Usage: {{ COMMAND }} [options]
 
-Set the credential in the .netrc file for the given host(s).
+Set the credential in /etc/apt/apt.conf.d for the given repos.
+This command must be run in 'sudo -E' mode.
 
-All Artifact Registry credentials will be removed from the .netrc file before adding the new hosts.
-
-  # Existing Artifact Registry hosts will be removed.
-  # The only one remaining will be us-go.pkg.dev.
-  # If us-go.pkg.dev already exists, its credential will be refreshed.
-  artifact-registry-cred-helper set-netrc --repo-urls=us-go.pkg.dev/my-project/repo
+TODO: better docs
 `
 }
 
-func (c *SetNetRCCommand) Flags() *cli.FlagSet {
+func (c *SetAptCommand) Flags() *cli.FlagSet {
 	c.commonFlags = &CommonFlags{}
 	set := c.commonFlags.setSection(c.NewFlagSet())
 
-	sec := set.NewSection("NETRC OPTIONS")
+	sec := set.NewSection("APT OPTIONS")
 	sec.StringVar(&cli.StringVar{
-		Name:   "netrc",
-		Usage:  "The path to the .netrc file. Default to the system default path.",
-		Target: &c.netrcPath,
-		EnvVar: "AR_CRED_HELPER_NETRC",
+		Name:    "config-name",
+		Usage:   "The name of the config file under /etc/apt/apt.conf.d",
+		Target:  &c.configName,
+		EnvVar:  "AR_CRED_HELPER_APT_AUTH_CONFIG",
+		Default: "artifact-registry.conf",
 	})
 
 	return set
 }
 
-func (c *SetNetRCCommand) Run(ctx context.Context, args []string) (err error) {
+func (c *SetAptCommand) Run(ctx context.Context, args []string) (err error) {
 	f := c.Flags()
 	if err := f.Parse(args); err != nil {
 		return fmt.Errorf("failed to parse flags: %w", err)
@@ -87,13 +84,13 @@ func (c *SetNetRCCommand) Run(ctx context.Context, args []string) (err error) {
 	return nil
 }
 
-func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
-	nrc, err := netrc.Open(c.netrcPath)
+func (c *SetAptCommand) runOnce(ctx context.Context) (err error) {
+	cfg, err := apt.Open(c.configName)
 	if err != nil {
-		return fmt.Errorf("failed to open .netrc file: %w", err)
+		return fmt.Errorf("failed to open apt auth config file: %w", err)
 	}
 	defer func() {
-		if closeErr := nrc.Close(); err == nil {
+		if closeErr := cfg.Close(); err == nil {
 			err = closeErr
 		}
 	}()
@@ -109,7 +106,7 @@ func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
 		if err != nil {
 			return fmt.Errorf("failed to encode JSON key: %w", err)
 		}
-		nrc.SetJSONKey(hosts, k, false)
+		cfg.SetJSONKey(hosts, k)
 		return nil
 	}
 
@@ -118,7 +115,7 @@ func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
 		if token == "" {
 			return fmt.Errorf("failed to get access token from env var %q", c.commonFlags.accessTokenFromEnv)
 		}
-		nrc.SetToken(hosts, token, false)
+		cfg.SetToken(hosts, token)
 		return nil
 	}
 
@@ -126,7 +123,7 @@ func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}
-	nrc.SetToken(hosts, token, false)
+	cfg.SetToken(hosts, token)
 
 	return nil
 }

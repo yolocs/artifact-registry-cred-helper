@@ -48,7 +48,7 @@ func (c *SetMavenSettings) Flags() *cli.FlagSet {
 		Name:    "repo-ids-override",
 		Usage:   "Override the repo IDs that are used in pom.xml.",
 		Target:  &c.repoIDsOverride,
-		EnvVar:  "AR_CRED_HELPER_REPO_IDS_OVERRIDE",
+		EnvVar:  "AR_CRED_HELPER_MAVEN_REPO_IDS_OVERRIDE",
 		Example: "my-artifact-registry",
 	})
 
