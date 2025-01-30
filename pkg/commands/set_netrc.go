@@ -19,7 +19,7 @@ type SetNetRCCommand struct {
 }
 
 func (c *SetNetRCCommand) Desc() string {
-	return "Set the credential in the .netrc file for the given host."
+	return "Set the credential in the .netrc file for the given repos."
 }
 
 func (c *SetNetRCCommand) Help() string {
@@ -33,7 +33,7 @@ All Artifact Registry credentials will be removed from the .netrc file before ad
   # Existing Artifact Registry hosts will be removed.
   # The only one remaining will be us-go.pkg.dev.
   # If us-go.pkg.dev already exists, its credential will be refreshed.
-  artifact-registry-cred-helper set-netrc --hosts=us-go.pkg.dev
+  artifact-registry-cred-helper set-netrc --hosts=us-go.pkg.dev/my-project/repo
 `
 }
 
@@ -61,6 +61,12 @@ func (c *SetNetRCCommand) Run(ctx context.Context, args []string) (err error) {
 		return err
 	}
 
+	// Immediately run once.
+	if err := c.runOnce(ctx); err != nil {
+		return fmt.Errorf("failed to set credential: %w", err)
+	}
+
+	// Start background refresh if enabled.
 	if c.commonFlags.backgroundRefreshInterval > 0 {
 		ctx, cancel := context.WithTimeout(ctx, c.commonFlags.backgroundRefreshDuration)
 		defer cancel()
@@ -78,7 +84,7 @@ func (c *SetNetRCCommand) Run(ctx context.Context, args []string) (err error) {
 		}
 	}
 
-	return c.runOnce(ctx)
+	return nil
 }
 
 func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
@@ -92,12 +98,18 @@ func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
 		}
 	}()
 
+	hosts, err := c.commonFlags.repoHosts()
+	if err != nil {
+		// No error is possible here because we have validated the flag.
+		return err
+	}
+
 	if c.commonFlags.jsonKeyPath != "" {
 		k, err := auth.EncodeJSONKey(c.commonFlags.jsonKeyPath)
 		if err != nil {
 			return fmt.Errorf("failed to encode JSON key: %w", err)
 		}
-		nrc.SetJSONKey(c.commonFlags.hosts, k, false)
+		nrc.SetJSONKey(hosts, k, false)
 		return nil
 	}
 
@@ -106,7 +118,7 @@ func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
 		if token == "" {
 			return fmt.Errorf("failed to get access token from env var %q", c.commonFlags.accessTokenFromEnv)
 		}
-		nrc.SetToken(c.commonFlags.hosts, token, false)
+		nrc.SetToken(hosts, token, false)
 		return nil
 	}
 
@@ -114,7 +126,7 @@ func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}
-	nrc.SetToken(c.commonFlags.hosts, token, false)
+	nrc.SetToken(hosts, token, false)
 
 	return nil
 }
