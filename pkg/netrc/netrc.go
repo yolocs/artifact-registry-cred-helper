@@ -40,7 +40,7 @@ func Open(netrcPath string) (*NetRC, error) {
 		if err != nil {
 			return nil, fmt.Errorf("cannot find HOME dir: %w", err)
 		}
-		netrcPath = h
+		netrcPath = filepath.Join(h, ".netrc")
 	}
 
 	data, err := os.ReadFile(netrcPath)
