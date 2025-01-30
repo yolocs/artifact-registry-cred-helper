@@ -4,9 +4,8 @@ package netrc
 import (
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
-	"strings"
 	// "github.com/GoogleCloudPlatform/artifact-registry-go-tools/pkg/auth"
 )
 
@@ -40,20 +39,9 @@ func Open(netrcPath string) (*NetRC, error) {
 	if netrcPath == "" {
 		h, err := os.UserHomeDir()
 		if err != nil {
-			return nil, fmt.Errorf("cannot open .netrc file: %w", err)
+			return nil, fmt.Errorf("cannot find HOME dir: %w", err)
 		}
 		netrcPath = h
-	}
-
-	if !strings.HasSuffix(netrcPath, ".netrc") {
-		netrcPath = path.Join(netrcPath, ".netrc")
-	}
-
-	if _, err := os.Stat(path.Dir(netrcPath)); err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf(".netrc directory does not exist: %w", err)
-		}
-		return nil, fmt.Errorf("failed to load .netrc directory: %w", err)
 	}
 
 	data, err := os.ReadFile(netrcPath)
@@ -61,7 +49,7 @@ func Open(netrcPath string) (*NetRC, error) {
 		return &NetRC{path: netrcPath, content: ""}, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("cannot load .netrc file: %v", err)
+		return nil, fmt.Errorf("cannot load file %q: %v", netrcPath, err)
 	}
 	return &NetRC{path: netrcPath, content: string(data)}, nil
 }
@@ -79,14 +67,19 @@ func (n *NetRC) Refresh(token string) {
 }
 
 func (n *NetRC) Close() error {
+	// Make sure dir exists.
+	if err := os.MkdirAll(filepath.Dir(n.path), 0755); err != nil {
+		return fmt.Errorf("failed to create dir for %q: %w", n.path, err)
+	}
+
 	f, err := os.OpenFile(n.path, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0777)
 	if err != nil {
-		return fmt.Errorf("failed to open .netrc: %w", err)
+		return fmt.Errorf("failed to open %q: %w", n.path, err)
 	}
 	defer f.Close()
 
 	if _, err := f.WriteString(n.content); err != nil {
-		return fmt.Errorf("failed to save .netrc: %w", err)
+		return fmt.Errorf("failed to save %q: %w", n.path, err)
 	}
 	return nil
 }
