@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	configDir = "/etc/apt/apt.conf.d"
+	configDir = "/etc/apt/auth.conf.d"
 )
 
 // AuthConfig represents a apt auth config file.

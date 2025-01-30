@@ -19,7 +19,7 @@ type SetAptCommand struct {
 }
 
 func (c *SetAptCommand) Desc() string {
-	return "Set the credential in /etc/apt/apt.conf.d for the given repos."
+	return "Set the credential in /etc/apt/auth.conf.d for the given repos."
 }
 
 func (c *SetAptCommand) Help() string {
@@ -28,10 +28,10 @@ Usage: {{ COMMAND }} [options]
 
 This command MUST be run in 'sudo -E' mode.
 
-Set the credential in /etc/apt/apt.conf.d for the given repos.
+Set the credential in /etc/apt/auth.conf.d for the given repos.
 All Artifact Registry credentials will be removed from the auth config before setting the new hosts.
 
-  # Example: Set the credential in the default path /etc/apt/apt.conf.d/artifact-registry.conf
+  # Example: Set the credential in the default path /etc/apt/auth.conf.d/artifact-registry.conf
   artifact-registry-cred-helper set-apt --repo-urls us-apt.pkg.dev/my-project/repo1
 
   # Example: Override the default auth config path.
@@ -46,7 +46,7 @@ func (c *SetAptCommand) Flags() *cli.FlagSet {
 	sec := set.NewSection("APT OPTIONS")
 	sec.StringVar(&cli.StringVar{
 		Name:    "config-name",
-		Usage:   "The name of the config file under /etc/apt/apt.conf.d",
+		Usage:   "The name of the config file under /etc/apt/auth.conf.d",
 		Target:  &c.configName,
 		EnvVar:  "AR_CRED_HELPER_APT_AUTH_CONFIG",
 		Default: "artifact-registry.conf",
