@@ -7,17 +7,47 @@ import (
 	"strings"
 
 	"github.com/abcxyz/pkg/cli"
+	"github.com/yolocs/artifact-registry-cred-helper/pkg/auth"
 )
+
+type authConfig interface {
+	SetToken([]string, string)
+	SetJSONKey([]string, string)
+	Close() error
+}
+
+type authTokenGetter func(context.Context) (string, error)
+type encodedJSONKeyGetter func(string) (string, error)
+
+var (
+	defaultAuthTokenGetter      = auth.Token
+	defaultEncodedJSONKeyGetter = auth.EncodeJSONKey
+)
+
+type baseCommand struct {
+	cli.BaseCommand
+
+	getAuthToken      authTokenGetter
+	getEncodedJSONKey encodedJSONKeyGetter
+}
 
 var rootCmd = func() cli.Command {
 	return &cli.RootCommand{
 		Name:    "artifact-registry-cred-helper",
 		Version: "dev",
 		Commands: map[string]cli.CommandFactory{
-			"get":       func() cli.Command { return &GetCommand{} },
-			"set-netrc": func() cli.Command { return &SetNetRCCommand{} },
-			"set-maven": func() cli.Command { return &SetMavenSettings{} },
-			"set-apt":   func() cli.Command { return &SetAptCommand{} },
+			"get": func() cli.Command {
+				return &GetCommand{baseCommand: baseCommand{getAuthToken: defaultAuthTokenGetter, getEncodedJSONKey: defaultEncodedJSONKeyGetter}}
+			},
+			"set-netrc": func() cli.Command {
+				return &SetNetRCCommand{baseCommand: baseCommand{getAuthToken: defaultAuthTokenGetter, getEncodedJSONKey: defaultEncodedJSONKeyGetter}}
+			},
+			"set-maven": func() cli.Command {
+				return &SetMavenCommand{baseCommand: baseCommand{getAuthToken: defaultAuthTokenGetter, getEncodedJSONKey: defaultEncodedJSONKeyGetter}}
+			},
+			"set-apt": func() cli.Command {
+				return &SetAptCommand{baseCommand: baseCommand{getAuthToken: defaultAuthTokenGetter, getEncodedJSONKey: defaultEncodedJSONKeyGetter}}
+			},
 		},
 	}
 }

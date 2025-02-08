@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"github.com/abcxyz/pkg/cli"
-	"github.com/yolocs/artifact-registry-cred-helper/pkg/auth"
 	"github.com/yolocs/artifact-registry-cred-helper/pkg/netrc"
 )
 
 type SetNetRCCommand struct {
-	cli.BaseCommand
+	baseCommand
 
 	commonFlags *CommonFlags
 	netrcPath   string
@@ -61,8 +60,13 @@ func (c *SetNetRCCommand) Run(ctx context.Context, args []string) (err error) {
 		return err
 	}
 
+	nrc, err := netrc.Open(c.netrcPath)
+	if err != nil {
+		return fmt.Errorf("failed to open .netrc file: %w", err)
+	}
+
 	// Immediately run once.
-	if err := c.runOnce(ctx); err != nil {
+	if err := c.runOnce(ctx, nrc); err != nil {
 		return fmt.Errorf("failed to set credential: %w", err)
 	}
 
@@ -75,7 +79,7 @@ func (c *SetNetRCCommand) Run(ctx context.Context, args []string) (err error) {
 		for {
 			select {
 			case <-ticker.C:
-				if err := c.runOnce(ctx); err != nil {
+				if err := c.runOnce(ctx, nrc); err != nil {
 					return fmt.Errorf("failed to refresh credential: %w", err)
 				}
 			case <-ctx.Done():
@@ -87,11 +91,7 @@ func (c *SetNetRCCommand) Run(ctx context.Context, args []string) (err error) {
 	return nil
 }
 
-func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
-	nrc, err := netrc.Open(c.netrcPath)
-	if err != nil {
-		return fmt.Errorf("failed to open .netrc file: %w", err)
-	}
+func (c *SetNetRCCommand) runOnce(ctx context.Context, nrc authConfig) (err error) {
 	defer func() {
 		if closeErr := nrc.Close(); err == nil {
 			err = closeErr
@@ -105,7 +105,7 @@ func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
 	}
 
 	if c.commonFlags.jsonKeyPath != "" {
-		k, err := auth.EncodeJSONKey(c.commonFlags.jsonKeyPath)
+		k, err := c.getEncodedJSONKey(c.commonFlags.jsonKeyPath)
 		if err != nil {
 			return fmt.Errorf("failed to encode JSON key: %w", err)
 		}
@@ -122,7 +122,7 @@ func (c *SetNetRCCommand) runOnce(ctx context.Context) (err error) {
 		return nil
 	}
 
-	token, err := auth.Token(ctx)
+	token, err := c.getAuthToken(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}
