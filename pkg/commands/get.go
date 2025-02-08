@@ -7,11 +7,10 @@ import (
 	"io"
 
 	"github.com/abcxyz/pkg/cli"
-	"github.com/yolocs/artifact-registry-cred-helper/pkg/auth"
 )
 
 type GetCommand struct {
-	cli.BaseCommand
+	baseCommand
 
 	hosts []string
 	// jsonKey string
@@ -82,7 +81,7 @@ func (c *GetCommand) Run(ctx context.Context, args []string) error {
 		return err
 	}
 
-	token, err := auth.Token(ctx)
+	token, err := c.getAuthToken(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}

@@ -7,23 +7,22 @@ import (
 	"time"
 
 	"github.com/abcxyz/pkg/cli"
-	"github.com/yolocs/artifact-registry-cred-helper/pkg/auth"
 	"github.com/yolocs/artifact-registry-cred-helper/pkg/maven"
 )
 
-type SetMavenSettings struct {
-	cli.BaseCommand
+type SetMavenCommand struct {
+	baseCommand
 
 	commonFlags       *CommonFlags
 	mavenSettingsPath string
 	repoIDsOverride   []string
 }
 
-func (c *SetMavenSettings) Desc() string {
-	return "Set the credential in the .netrc file for the given host."
+func (c *SetMavenCommand) Desc() string {
+	return "Set the credential in the Maven settings.xml file for the given repos."
 }
 
-func (c *SetMavenSettings) Help() string {
+func (c *SetMavenCommand) Help() string {
 	return `
 Usage: {{ COMMAND }} [options]
 
@@ -44,7 +43,7 @@ By default, we use repository ID in format: artifactregistry-[project_id]-[repo_
 `
 }
 
-func (c *SetMavenSettings) Flags() *cli.FlagSet {
+func (c *SetMavenCommand) Flags() *cli.FlagSet {
 	c.commonFlags = &CommonFlags{}
 	set := c.commonFlags.setSection(c.NewFlagSet())
 
@@ -66,7 +65,7 @@ func (c *SetMavenSettings) Flags() *cli.FlagSet {
 	return set
 }
 
-func (c *SetMavenSettings) Run(ctx context.Context, args []string) (err error) {
+func (c *SetMavenCommand) Run(ctx context.Context, args []string) (err error) {
 	f := c.Flags()
 	if err := f.Parse(args); err != nil {
 		return fmt.Errorf("failed to parse flags: %w", err)
@@ -82,8 +81,13 @@ func (c *SetMavenSettings) Run(ctx context.Context, args []string) (err error) {
 		}
 	}
 
+	settings, err := maven.Open(c.mavenSettingsPath)
+	if err != nil {
+		return fmt.Errorf("failed to open Maven settings.xml file: %w", err)
+	}
+
 	// Immediately run once.
-	if err := c.runOnce(ctx); err != nil {
+	if err := c.runOnce(ctx, settings); err != nil {
 		return fmt.Errorf("failed to set credential: %w", err)
 	}
 
@@ -96,7 +100,7 @@ func (c *SetMavenSettings) Run(ctx context.Context, args []string) (err error) {
 		for {
 			select {
 			case <-ticker.C: // Run periodically
-				if err := c.runOnce(ctx); err != nil {
+				if err := c.runOnce(ctx, settings); err != nil {
 					return fmt.Errorf("failed to refresh credential: %w", err)
 				}
 			case <-ctx.Done():
@@ -108,11 +112,7 @@ func (c *SetMavenSettings) Run(ctx context.Context, args []string) (err error) {
 	return nil
 }
 
-func (c *SetMavenSettings) runOnce(ctx context.Context) (err error) {
-	settings, err := maven.Open(c.mavenSettingsPath)
-	if err != nil {
-		return fmt.Errorf("failed to open Maven settings.xml file: %w", err)
-	}
+func (c *SetMavenCommand) runOnce(ctx context.Context, settings authConfig) (err error) {
 	defer func() {
 		if closeErr := settings.Close(); err == nil {
 			err = closeErr
@@ -127,7 +127,7 @@ func (c *SetMavenSettings) runOnce(ctx context.Context) (err error) {
 	}
 
 	if c.commonFlags.jsonKeyPath != "" {
-		k, err := auth.EncodeJSONKey(c.commonFlags.jsonKeyPath)
+		k, err := c.getEncodedJSONKey(c.commonFlags.jsonKeyPath)
 		if err != nil {
 			return fmt.Errorf("failed to encode JSON key: %w", err)
 		}
@@ -144,7 +144,7 @@ func (c *SetMavenSettings) runOnce(ctx context.Context) (err error) {
 		return nil
 	}
 
-	token, err := auth.Token(ctx)
+	token, err := c.getAuthToken(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}

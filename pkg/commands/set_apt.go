@@ -8,11 +8,10 @@ import (
 
 	"github.com/abcxyz/pkg/cli"
 	"github.com/yolocs/artifact-registry-cred-helper/pkg/apt"
-	"github.com/yolocs/artifact-registry-cred-helper/pkg/auth"
 )
 
 type SetAptCommand struct {
-	cli.BaseCommand
+	baseCommand
 
 	commonFlags *CommonFlags
 	configName  string
@@ -64,8 +63,13 @@ func (c *SetAptCommand) Run(ctx context.Context, args []string) (err error) {
 		return err
 	}
 
+	cfg, err := apt.Open(c.configName)
+	if err != nil {
+		return fmt.Errorf("failed to open apt auth config file: %w", err)
+	}
+
 	// Immediately run once.
-	if err := c.runOnce(ctx); err != nil {
+	if err := c.runOnce(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to set credential: %w", err)
 	}
 
@@ -78,7 +82,7 @@ func (c *SetAptCommand) Run(ctx context.Context, args []string) (err error) {
 		for {
 			select {
 			case <-ticker.C:
-				if err := c.runOnce(ctx); err != nil {
+				if err := c.runOnce(ctx, cfg); err != nil {
 					return fmt.Errorf("failed to refresh credential: %w", err)
 				}
 			case <-ctx.Done():
@@ -90,11 +94,7 @@ func (c *SetAptCommand) Run(ctx context.Context, args []string) (err error) {
 	return nil
 }
 
-func (c *SetAptCommand) runOnce(ctx context.Context) (err error) {
-	cfg, err := apt.Open(c.configName)
-	if err != nil {
-		return fmt.Errorf("failed to open apt auth config file: %w", err)
-	}
+func (c *SetAptCommand) runOnce(ctx context.Context, cfg authConfig) (err error) {
 	defer func() {
 		if closeErr := cfg.Close(); err == nil {
 			err = closeErr
@@ -108,7 +108,7 @@ func (c *SetAptCommand) runOnce(ctx context.Context) (err error) {
 	}
 
 	if c.commonFlags.jsonKeyPath != "" {
-		k, err := auth.EncodeJSONKey(c.commonFlags.jsonKeyPath)
+		k, err := c.getEncodedJSONKey(c.commonFlags.jsonKeyPath)
 		if err != nil {
 			return fmt.Errorf("failed to encode JSON key: %w", err)
 		}
@@ -125,7 +125,7 @@ func (c *SetAptCommand) runOnce(ctx context.Context) (err error) {
 		return nil
 	}
 
-	token, err := auth.Token(ctx)
+	token, err := c.getAuthToken(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}
