@@ -6,7 +6,7 @@ require (
 	github.com/abcxyz/pkg v1.3.1
 	github.com/beevik/etree v1.4.1
 	github.com/google/go-cmp v0.6.0
-	golang.org/x/oauth2 v0.25.0
+	golang.org/x/oauth2 v0.26.0
 )
 
 require (
