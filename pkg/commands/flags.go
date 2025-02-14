@@ -82,6 +82,11 @@ func (f *CommonFlags) parseURLs() (merr error) {
 			u, err := url.Parse(h)
 			if err != nil {
 				merr = errors.Join(merr, fmt.Errorf("failed to parse host %q: %w", h, err))
+				continue
+			}
+			if !strings.HasSuffix(u.Host, ".pkg.dev") || len(strings.Split(strings.Trim(u.Path, "/"), "/")) != 2 {
+				merr = errors.Join(merr, fmt.Errorf("repo URL %q not in format '*.pkg.dev/[project]/[repo]'", u.String()))
+				continue
 			}
 			f.parsedURLs = append(f.parsedURLs, u)
 		}
@@ -95,7 +100,7 @@ func (f *CommonFlags) setSection(set *cli.FlagSet) *cli.FlagSet {
 
 	sec.StringSliceVar(&cli.StringSliceVar{
 		Name:    "repo-urls",
-		Usage:   "REQUIRED. The hosts to set the credential for. Must have domain '*.pkg.dev'.",
+		Usage:   "REQUIRED. The hosts to set the credential for. Must in format '*.pkg.dev/[project]/[repo]'.",
 		Target:  &f.repoURLs,
 		EnvVar:  "AR_CRED_HELPER_HOSTS",
 		Example: "us-go.pkg.dev/my-project/repo1,asia-maven.pkg.dev/my-project/repo2",
