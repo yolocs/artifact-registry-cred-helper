@@ -48,6 +48,9 @@ var rootCmd = func() cli.Command {
 			"set-apt": func() cli.Command {
 				return &SetAptCommand{baseCommand: baseCommand{getAuthToken: defaultAuthTokenGetter, getEncodedJSONKey: defaultEncodedJSONKeyGetter}}
 			},
+			"set-npm": func() cli.Command {
+				return &SetNPMCommand{baseCommand: baseCommand{getAuthToken: defaultAuthTokenGetter, getEncodedJSONKey: defaultEncodedJSONKeyGetter}}
+			},
 		},
 	}
 }
