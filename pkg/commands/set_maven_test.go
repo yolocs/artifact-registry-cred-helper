@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/url"
 	"testing"
+
+	"github.com/abcxyz/pkg/testutil"
 )
 
 func TestSetMavenSettings_runOnce(t *testing.T) {
@@ -14,7 +16,7 @@ func TestSetMavenSettings_runOnce(t *testing.T) {
 		wantToken   string
 		wantJSONKey string
 		wantRepoIDs []string
-		wantErr     bool
+		wantErr     string
 		setEnv      map[string]string
 	}{
 		{
@@ -72,7 +74,7 @@ func TestSetMavenSettings_runOnce(t *testing.T) {
 				},
 			},
 			mockAuth: &mockAuthConfig{},
-			wantErr:  true,
+			wantErr:  "failed to get access token from env var",
 		},
 		{
 			name: "override repo IDs success",
@@ -99,12 +101,12 @@ func TestSetMavenSettings_runOnce(t *testing.T) {
 				t.Setenv(k, v)
 			}
 			err := tc.command.runOnce(context.Background(), tc.mockAuth)
-			if (err != nil) != tc.wantErr {
+			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("runOnce() error = %v, wantErr %v", err, tc.wantErr)
 				return
 			}
 
-			if !tc.wantErr {
+			if tc.wantErr == "" {
 				if tc.wantToken != tc.mockAuth.token {
 					t.Errorf("token = %v, want %v", tc.mockAuth.token, tc.wantToken)
 				}

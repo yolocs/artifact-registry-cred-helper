@@ -3,6 +3,8 @@ package commands
 import (
 	"context"
 	"testing"
+
+	"github.com/abcxyz/pkg/testutil"
 )
 
 type mockAuthConfig struct {
@@ -36,7 +38,7 @@ func TestSetNetRCCommand_runOnce(t *testing.T) {
 		wantToken   string
 		wantJSONKey string
 		wantHosts   []string
-		wantErr     bool
+		wantErr     string
 		setEnv      map[string]string
 	}{
 		{
@@ -94,7 +96,7 @@ func TestSetNetRCCommand_runOnce(t *testing.T) {
 				},
 			},
 			mockAuth: &mockAuthConfig{},
-			wantErr:  true,
+			wantErr:  `failed to get access token from env var "TEST_TOKEN"`,
 		},
 	}
 
@@ -104,12 +106,12 @@ func TestSetNetRCCommand_runOnce(t *testing.T) {
 				t.Setenv(k, v)
 			}
 			err := tc.command.runOnce(context.Background(), tc.mockAuth)
-			if (err != nil) != tc.wantErr {
+			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("runOnce() error = %v, wantErr %v", err, tc.wantErr)
 				return
 			}
 
-			if !tc.wantErr {
+			if tc.wantErr == "" {
 				if tc.wantToken != tc.mockAuth.token {
 					t.Errorf("token = %v, want %v", tc.mockAuth.token, tc.wantToken)
 				}

@@ -4,20 +4,23 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"testing"
 
+	"github.com/abcxyz/pkg/testutil"
 	"github.com/google/go-cmp/cmp"
 )
 
 func TestGetCommand_Run(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name          string
 		args          []string
 		stdin         string
 		getAuthToken  authTokenGetter
 		expectedHosts []string
-		expectedErr   error
+		expectedErr   string
 		expectedOut   string
 	}{
 		{
@@ -44,20 +47,22 @@ func TestGetCommand_Run(t *testing.T) {
 			getAuthToken: func(ctx context.Context) (string, error) {
 				return "test-token", nil
 			},
-			expectedErr: errors.New("host \"invalid-host\" doesn't have domain '.pkg.dev'"),
+			expectedErr: "host \"invalid-host\" doesn't have domain '.pkg.dev'",
 		},
 		{
 			name: "getAuthToken error",
 			args: []string{"--hosts", "us-go.pkg.dev"},
 			getAuthToken: func(ctx context.Context) (string, error) {
-				return "", errors.New("token error")
+				return "", fmt.Errorf("token error")
 			},
-			expectedErr: errors.New("failed to get access token: token error"),
+			expectedErr: "failed to get access token: token error",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			cmd := &GetCommand{
 				baseCommand: baseCommand{
 					getAuthToken: tt.getAuthToken,
@@ -72,14 +77,13 @@ func TestGetCommand_Run(t *testing.T) {
 			cmd.SetStdout(&stdout)
 
 			err := cmd.Run(context.Background(), tt.args)
-			if tt.expectedErr != nil {
-				if err == nil || err.Error() != tt.expectedErr.Error() {
-					t.Fatalf("expected error %v, got %v", tt.expectedErr, err)
-				}
+			if diff := testutil.DiffErrString(err, tt.expectedErr); diff != "" {
+				t.Errorf("unexpected error: %s", diff)
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+
+			if tt.expectedErr != "" {
+				return
 			}
 
 			if tt.expectedOut != "" {

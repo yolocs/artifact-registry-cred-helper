@@ -3,6 +3,8 @@ package commands
 import (
 	"context"
 	"testing"
+
+	"github.com/abcxyz/pkg/testutil"
 )
 
 func TestSetNPMCommand_runOnce(t *testing.T) {
@@ -13,7 +15,7 @@ func TestSetNPMCommand_runOnce(t *testing.T) {
 		wantToken    string
 		wantJSONKey  string
 		wantRepoURLs []string
-		wantErr      bool
+		wantErr      string
 		setEnv       map[string]string
 	}{
 		{
@@ -55,7 +57,7 @@ func TestSetNPMCommand_runOnce(t *testing.T) {
 				},
 			},
 			mockAuth: &mockAuthConfig{},
-			wantErr:  true,
+			wantErr:  "failed to get access token from env var",
 		},
 		{
 			name: "get auth token success",
@@ -81,12 +83,12 @@ func TestSetNPMCommand_runOnce(t *testing.T) {
 				t.Setenv(k, v)
 			}
 			err := tc.command.runOnce(context.Background(), tc.mockAuth)
-			if (err != nil) != tc.wantErr {
-				t.Errorf("runOnce() error = %v, wantErr %v", err, tc.wantErr)
+			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
+				t.Errorf("runOnce() error = %v, wantErr %v, diff: %s", err, tc.wantErr, diff)
 				return
 			}
 
-			if !tc.wantErr {
+			if tc.wantErr == "" {
 				if tc.wantToken != tc.mockAuth.token {
 					t.Errorf("token = %v, want %v", tc.mockAuth.token, tc.wantToken)
 				}
