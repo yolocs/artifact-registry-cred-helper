@@ -1,4 +1,4 @@
-# artifact-registry-cred-helper
+# artifact-registry-cred-helper 
 
 This tool simplifies setting and managing credentials for accessing Google
 Artifact Registry from various build tools and package managers, including
@@ -10,7 +10,7 @@ troubleshooting.
 
 ## Installation
 
-This tool is a single binary. Download it from [insert release link here]. For
+This tool is a single binary. Download it from the latest [release](https://github.com/yolocs/artifact-registry-cred-helper/releases/latest). For
 example, you might download `artifact-registry-cred-helper_linux_amd64`. Place
 the binary in a directory included in your `PATH` environment variable.
 
