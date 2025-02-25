@@ -3,13 +3,17 @@ package commands
 import (
 	"testing"
 	"time"
+
+	"github.com/abcxyz/pkg/testutil"
 )
 
 func TestCommonFlags_validate(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		flags   *CommonFlags
-		wantErr bool
+		wantErr string
 	}{
 		{
 			name: "valid config",
@@ -17,14 +21,14 @@ func TestCommonFlags_validate(t *testing.T) {
 				repoURLs:                  []string{"us-go.pkg.dev/my-project/repo1"},
 				backgroundRefreshInterval: 5 * time.Minute,
 			},
-			wantErr: false,
+			wantErr: "",
 		},
 		{
 			name: "no hosts specified",
 			flags: &CommonFlags{
 				backgroundRefreshInterval: 5 * time.Minute,
 			},
-			wantErr: true,
+			wantErr: "no host specified",
 		},
 		{
 			name: "invalid url format",
@@ -32,7 +36,7 @@ func TestCommonFlags_validate(t *testing.T) {
 				repoURLs:                  []string{"invalid-url"},
 				backgroundRefreshInterval: 5 * time.Minute,
 			},
-			wantErr: true,
+			wantErr: `repo URL "https://invalid-url" not in format '*.pkg.dev/[project]/[repo]'`,
 		},
 		{
 			name: "both json key and access token set",
@@ -41,7 +45,7 @@ func TestCommonFlags_validate(t *testing.T) {
 				jsonKeyPath:        "/path/to/key.json",
 				accessTokenFromEnv: "TOKEN",
 			},
-			wantErr: true,
+			wantErr: "only one of --json-key or --access-token-from-env can be set",
 		},
 		{
 			name: "refresh interval too short",
@@ -49,39 +53,42 @@ func TestCommonFlags_validate(t *testing.T) {
 				repoURLs:                  []string{"us-go.pkg.dev/my-project/repo1"},
 				backgroundRefreshInterval: 1 * time.Minute,
 			},
-			wantErr: true,
+			wantErr: "background refresh interval must be at least 2 minutes",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := tt.flags.validate()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("CommonFlags.validate() error = %v, wantErr %v", err, tt.wantErr)
+			if diff := testutil.DiffErrString(err, tt.wantErr); diff != "" {
+				t.Errorf("CommonFlags.validate() %s", diff)
 			}
 		})
 	}
 }
 
 func TestCommonFlags_validateWithoutURLs(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		flags   *CommonFlags
-		wantErr bool
+		wantErr string
 	}{
 		{
 			name: "valid config",
 			flags: &CommonFlags{
 				backgroundRefreshInterval: 5 * time.Minute,
 			},
-			wantErr: false,
+			wantErr: "",
 		},
 		{
 			name: "refresh interval too short",
 			flags: &CommonFlags{
 				backgroundRefreshInterval: 1 * time.Minute,
 			},
-			wantErr: true,
+			wantErr: "background refresh interval must be at least 2 minutes",
 		},
 		{
 			name: "both auth methods set",
@@ -89,22 +96,23 @@ func TestCommonFlags_validateWithoutURLs(t *testing.T) {
 				jsonKeyPath:        "/path/to/key.json",
 				accessTokenFromEnv: "TOKEN",
 			},
-			wantErr: true,
+			wantErr: "only one of --json-key or --access-token-from-env can be set",
 		},
 		{
 			name: "zero refresh interval",
 			flags: &CommonFlags{
 				backgroundRefreshInterval: 0,
 			},
-			wantErr: false,
+			wantErr: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := tt.flags.validateWithoutURLs()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("CommonFlags.validateWithoutURLs() error = %v, wantErr %v", err, tt.wantErr)
+			if diff := testutil.DiffErrString(err, tt.wantErr); diff != "" {
+				t.Errorf("CommonFlags.validateWithoutURLs() %s", diff)
 			}
 		})
 	}

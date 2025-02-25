@@ -3,8 +3,11 @@ package commands
 import (
 	"context"
 	"testing"
+
+	"github.com/abcxyz/pkg/testutil"
 )
 
+// Disable parallel due to setting env vars.
 func TestSetAptCommand_runOnce(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -13,7 +16,7 @@ func TestSetAptCommand_runOnce(t *testing.T) {
 		wantToken   string
 		wantJSONKey string
 		wantHosts   []string
-		wantErr     bool
+		wantErr     string
 		setEnv      map[string]string
 	}{
 		{
@@ -71,22 +74,25 @@ func TestSetAptCommand_runOnce(t *testing.T) {
 				},
 			},
 			mockAuth: &mockAuthConfig{},
-			wantErr:  true,
+			wantErr:  `failed to get access token from env var "TEST_TOKEN"`,
+			setEnv:   map[string]string{}, // Explicitly set empty env
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			// Set env vars for this test case
 			for k, v := range tc.setEnv {
 				t.Setenv(k, v)
 			}
+
 			err := tc.command.runOnce(context.Background(), tc.mockAuth)
-			if (err != nil) != tc.wantErr {
-				t.Errorf("runOnce() error = %v, wantErr %v", err, tc.wantErr)
+			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
+				t.Errorf("runOnce() error = %v, wantErr %v\n%s", err, tc.wantErr, diff)
 				return
 			}
 
-			if !tc.wantErr {
+			if tc.wantErr == "" {
 				if tc.wantToken != tc.mockAuth.token {
 					t.Errorf("token = %v, want %v", tc.mockAuth.token, tc.wantToken)
 				}

@@ -6,16 +6,20 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/abcxyz/pkg/testutil"
 )
 
 func TestOpenNonExistingFile(t *testing.T) {
+	t.Parallel()
+
 	tmpDir := t.TempDir()
 	npmrcPath := filepath.Join(tmpDir, "nonexistent.npmrc")
 
 	// Should succeed even if file doesn't exist.
 	cfg, err := Open(npmrcPath, "")
-	if err != nil {
-		t.Fatalf("Open failed: %v", err)
+	if diff := testutil.DiffErrString(err, ""); diff != "" {
+		t.Errorf("Open unexpected error: %s", diff)
 	}
 
 	// Since file did not exist, content should be empty.
@@ -25,6 +29,8 @@ func TestOpenNonExistingFile(t *testing.T) {
 }
 
 func TestSetToken(t *testing.T) {
+	t.Parallel()
+
 	tmpDir := t.TempDir()
 	npmrcPath := filepath.Join(tmpDir, "test.npmrc")
 
@@ -35,8 +41,8 @@ func TestSetToken(t *testing.T) {
 
 	// Open the file.
 	cfg, err := Open(npmrcPath, "")
-	if err != nil {
-		t.Fatalf("Open failed: %v", err)
+	if diff := testutil.DiffErrString(err, ""); diff != "" {
+		t.Errorf("Open unexpected error: %s", diff)
 	}
 
 	repo := "us-npm.pkg.dev/my-project/repo1"
@@ -77,6 +83,8 @@ func TestSetToken(t *testing.T) {
 }
 
 func TestSetJSONKey(t *testing.T) {
+	t.Parallel()
+
 	tmpDir := t.TempDir()
 	npmrcPath := filepath.Join(tmpDir, "test_json.npmrc")
 
@@ -87,8 +95,8 @@ func TestSetJSONKey(t *testing.T) {
 	}
 
 	cfg, err := Open(npmrcPath, "myscope")
-	if err != nil {
-		t.Fatalf("Open failed: %v", err)
+	if diff := testutil.DiffErrString(err, ""); diff != "" {
+		t.Errorf("Open unexpected error: %s", diff)
 	}
 
 	repo := "us-npm.pkg.dev/my-project/repo1"
@@ -128,12 +136,14 @@ func TestSetJSONKey(t *testing.T) {
 }
 
 func TestCloseWritesFile(t *testing.T) {
+	t.Parallel()
+
 	tmpDir := t.TempDir()
 	npmrcPath := filepath.Join(tmpDir, "close_test.npmrc")
 
 	cfg, err := Open(npmrcPath, "")
-	if err != nil {
-		t.Fatalf("Open failed: %v", err)
+	if diff := testutil.DiffErrString(err, ""); diff != "" {
+		t.Errorf("Open unexpected error: %s", diff)
 	}
 
 	repo := "us-npm.pkg.dev/my-project/repo2"
@@ -141,13 +151,15 @@ func TestCloseWritesFile(t *testing.T) {
 	cfg.SetToken([]string{repo}, token)
 
 	if err := cfg.Close(); err != nil {
-		t.Fatalf("Close failed: %v", err)
+		if diff := testutil.DiffErrString(err, ""); diff != "" {
+			t.Errorf("Close unexpected error: %s", diff)
+		}
 	}
 
 	// Re-read file to verify content.
 	data, err := os.ReadFile(npmrcPath)
-	if err != nil {
-		t.Fatalf("ReadFile failed: %v", err)
+	if diff := testutil.DiffErrString(err, ""); diff != "" {
+		t.Errorf("ReadFile unexpected error: %s", diff)
 	}
 
 	url := normalizeRepoURL(repo)

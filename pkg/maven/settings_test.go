@@ -11,6 +11,7 @@ import (
 )
 
 func TestDefaultRepoID(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		repoURL  string
 		expected string
@@ -30,18 +31,22 @@ func TestDefaultRepoID(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		u, err := url.Parse(tc.repoURL)
-		if err != nil {
-			t.Fatalf("failed to parse URL: %v", err)
-		}
-		actual := DefaultRepoID(u)
-		if actual != tc.expected {
-			t.Errorf("DefaultRepoID(%q) = %q, expected %q", tc.repoURL, actual, tc.expected)
-		}
+		t.Run(tc.repoURL, func(t *testing.T) {
+			t.Parallel()
+			u, err := url.Parse(tc.repoURL)
+			if err != nil {
+				t.Fatalf("failed to parse URL: %v", err)
+			}
+			actual := DefaultRepoID(u)
+			if actual != tc.expected {
+				t.Errorf("DefaultRepoID(%q) = %q, expected %q", tc.repoURL, actual, tc.expected)
+			}
+		})
 	}
 }
 
 func TestSettings_SetToken(t *testing.T) {
+	t.Parallel()
 	settingsPath := filepath.Join(t.TempDir(), "settings.xml")
 	settings, err := Open(settingsPath)
 	if err != nil {
@@ -59,28 +64,33 @@ func TestSettings_SetToken(t *testing.T) {
 
 	doc := settings.doc
 	for _, repoID := range repoIDs {
-		server := doc.FindElement(strings.ReplaceAll("//settings/servers/server[id='"+repoID+"']", "'", "\""))
-		if server == nil {
-			t.Fatalf("server with id %q not found", repoID)
-		}
-		username := server.FindElement("username")
-		if username == nil {
-			t.Fatalf("username for server %q not found", repoID)
-		}
-		if username.Text() != "oauth2accesstoken" {
-			t.Errorf("username = %q, expected %q", username.Text(), "oauth2accesstoken")
-		}
-		password := server.FindElement("password")
-		if password == nil {
-			t.Fatalf("password for server %q not found", repoID)
-		}
-		if password.Text() != token {
-			t.Errorf("password = %q, expected %q", password.Text(), token)
-		}
+		repoID := repoID
+		t.Run(repoID, func(t *testing.T) {
+			t.Parallel()
+			server := doc.FindElement(strings.ReplaceAll("//settings/servers/server[id='"+repoID+"']", "'", "\""))
+			if server == nil {
+				t.Fatalf("server with id %q not found", repoID)
+			}
+			username := server.FindElement("username")
+			if username == nil {
+				t.Fatalf("username for server %q not found", repoID)
+			}
+			if username.Text() != "oauth2accesstoken" {
+				t.Errorf("username = %q, expected %q", username.Text(), "oauth2accesstoken")
+			}
+			password := server.FindElement("password")
+			if password == nil {
+				t.Fatalf("password for server %q not found", repoID)
+			}
+			if password.Text() != token {
+				t.Errorf("password = %q, expected %q", password.Text(), token)
+			}
+		})
 	}
 }
 
 func TestSettings_SetJSONKey(t *testing.T) {
+	t.Parallel()
 	settingsPath := filepath.Join(t.TempDir(), "settings.xml")
 	settings, err := Open(settingsPath)
 	if err != nil {
@@ -98,28 +108,32 @@ func TestSettings_SetJSONKey(t *testing.T) {
 
 	doc := settings.doc
 	for _, repoID := range repoIDs {
-		server := doc.FindElement(strings.ReplaceAll("//settings/servers/server[id='"+repoID+"']", "'", "\""))
-		if server == nil {
-			t.Fatalf("server with id %q not found", repoID)
-		}
-		username := server.FindElement("username")
-		if username == nil {
-			t.Fatalf("username for server %q not found", repoID)
-		}
-		if username.Text() != "_json_key_base64" {
-			t.Errorf("username = %q, expected %q", username.Text(), "_json_key_base64")
-		}
-		password := server.FindElement("password")
-		if password == nil {
-			t.Fatalf("password for server %q not found", repoID)
-		}
-		if password.Text() != jsonKey {
-			t.Errorf("password = %q, expected %q", password.Text(), jsonKey)
-		}
+		t.Run(repoID, func(t *testing.T) {
+			t.Parallel()
+			server := doc.FindElement(strings.ReplaceAll("//settings/servers/server[id='"+repoID+"']", "'", "\""))
+			if server == nil {
+				t.Fatalf("server with id %q not found", repoID)
+			}
+			username := server.FindElement("username")
+			if username == nil {
+				t.Fatalf("username for server %q not found", repoID)
+			}
+			if username.Text() != "_json_key_base64" {
+				t.Errorf("username = %q, expected %q", username.Text(), "_json_key_base64")
+			}
+			password := server.FindElement("password")
+			if password == nil {
+				t.Fatalf("password for server %q not found", repoID)
+			}
+			if password.Text() != jsonKey {
+				t.Errorf("password = %q, expected %q", password.Text(), jsonKey)
+			}
+		})
 	}
 }
 
 func TestSettings_update(t *testing.T) {
+	t.Parallel()
 	settingsPath := filepath.Join(t.TempDir(), "settings.xml")
 	settings, err := Open(settingsPath)
 	if err != nil {
@@ -138,31 +152,33 @@ func TestSettings_update(t *testing.T) {
 
 	doc := settings.doc
 	for _, repoID := range repoIDs {
-		server := doc.FindElement(strings.ReplaceAll("//settings/servers/server[id='"+repoID+"']", "'", "\""))
-		if server == nil {
-			t.Fatalf("server with id %q not found", repoID)
-		}
-		id := server.FindElement("id")
-		if id == nil {
-			t.Fatalf("id for server %q not found", repoID)
-		}
-		if id.Text() != repoID {
-			t.Errorf("id = %q, expected %q", id.Text(), repoID)
-		}
-		username := server.FindElement("username")
-		if username == nil {
-			t.Fatalf("username for server %q not found", repoID)
-		}
-		if username.Text() != user {
-			t.Errorf("username = %q, expected %q", username.Text(), user)
-		}
-		password := server.FindElement("password")
-		if password == nil {
-			t.Fatalf("password for server %q not found", repoID)
-		}
-		if password.Text() != pwd {
-			t.Errorf("password = %q, expected %q", password.Text(), pwd)
-		}
+		t.Run(repoID, func(t *testing.T) {
+			server := doc.FindElement(strings.ReplaceAll("//settings/servers/server[id='"+repoID+"']", "'", "\""))
+			if server == nil {
+				t.Fatalf("server with id %q not found", repoID)
+			}
+			id := server.FindElement("id")
+			if id == nil {
+				t.Fatalf("id for server %q not found", repoID)
+			}
+			if id.Text() != repoID {
+				t.Errorf("id = %q, expected %q", id.Text(), repoID)
+			}
+			username := server.FindElement("username")
+			if username == nil {
+				t.Fatalf("username for server %q not found", repoID)
+			}
+			if username.Text() != user {
+				t.Errorf("username = %q, expected %q", username.Text(), user)
+			}
+			password := server.FindElement("password")
+			if password == nil {
+				t.Fatalf("password for server %q not found", repoID)
+			}
+			if password.Text() != pwd {
+				t.Errorf("password = %q, expected %q", password.Text(), pwd)
+			}
+		})
 	}
 
 	// Update existing server
@@ -171,29 +187,33 @@ func TestSettings_update(t *testing.T) {
 	settings.update(repoIDs, newUser, newPwd)
 
 	for _, repoID := range repoIDs {
-		server := doc.FindElement(strings.ReplaceAll("//settings/servers/server[id='"+repoID+"']", "'", "\""))
-		if server == nil {
-			t.Fatalf("server with id %q not found", repoID)
-		}
-		username := server.FindElement("username")
-		if username == nil {
-			t.Fatalf("username for server %q not found", repoID)
-		}
-		if username.Text() != newUser {
-			t.Errorf("username = %q, expected %q", username.Text(), newUser)
-		}
-		password := server.FindElement("password")
-		if password == nil {
-			t.Fatalf("password for server %q not found", repoID)
-		}
-		if password.Text() != newPwd {
-			t.Errorf("password = %q, expected %q", password.Text(), newPwd)
-		}
+		t.Run(repoID, func(t *testing.T) {
+			server := doc.FindElement(strings.ReplaceAll("//settings/servers/server[id='"+repoID+"']", "'", "\""))
+			if server == nil {
+				t.Fatalf("server with id %q not found", repoID)
+			}
+			username := server.FindElement("username")
+			if username == nil {
+				t.Fatalf("username for server %q not found", repoID)
+			}
+			if username.Text() != newUser {
+				t.Errorf("username = %q, expected %q", username.Text(), newUser)
+			}
+			password := server.FindElement("password")
+			if password == nil {
+				t.Fatalf("password for server %q not found", repoID)
+			}
+			if password.Text() != newPwd {
+				t.Errorf("password = %q, expected %q", password.Text(), newPwd)
+			}
+		})
 	}
 }
 
 func TestSettings_Close(t *testing.T) {
+	t.Parallel()
 	t.Run("create directory", func(t *testing.T) {
+		t.Parallel()
 		settingsPath := filepath.Join(t.TempDir(), "nested", "settings.xml")
 		settings, err := Open(settingsPath)
 		if err != nil {
@@ -211,6 +231,7 @@ func TestSettings_Close(t *testing.T) {
 	})
 
 	t.Run("write to file", func(t *testing.T) {
+		t.Parallel()
 		settingsPath := filepath.Join(t.TempDir(), "settings.xml")
 		settings, err := Open(settingsPath)
 		if err != nil {
