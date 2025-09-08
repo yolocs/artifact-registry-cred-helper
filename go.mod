@@ -1,14 +1,12 @@
 module github.com/yolocs/artifact-registry-cred-helper
 
-go 1.23.5
-
-toolchain go1.23.6
+go 1.24.0
 
 require (
 	github.com/abcxyz/pkg v1.4.0
 	github.com/beevik/etree v1.6.0
 	github.com/google/go-cmp v0.7.0
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.31.0
 )
 
 require (
